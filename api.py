@@ -22,6 +22,7 @@ result_input_dir = './results/input'
 result_output_dir = './results/output'
 download_providers = "github"
 download_scope = "lite"
+
 # 设置允许访问的域名
 origins = ["*"]  # "*"，即为所有。
 
