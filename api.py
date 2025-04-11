@@ -2,42 +2,21 @@
 
 import argparse
 import os
+import sys
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import PlainTextResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware  # 引入 CORS中间件模块
 
+from custom.TextProcessor import TextProcessor
 from custom.file_utils import logging, delete_old_files_and_folders
-from facefusion import core, state_manager, content_analyser
-from facefusion.args import collect_step_args
-from facefusion.jobs import job_helper, job_manager, job_runner, job_store
-from facefusion.jobs.job_manager import clear_jobs, init_jobs
-from facefusion.typing import Args
-from tests.helper import get_output_file, get_jobs_directory, prepare_output_directory
+from facefusion import core
+from facefusion.jobs import job_helper
 
 os.environ['OMP_NUM_THREADS'] = '1'
-
-
-def create_and_run_job(step_args: Args) -> bool:
-	clear_jobs(get_jobs_directory())
-	init_jobs(get_jobs_directory())
-	prepare_output_directory()
-	state_manager.init_item('execution_device_id', 0)
-	state_manager.init_item('execution_providers', ['cuda'])
-	state_manager.init_item('download_providers', ['huggingface'])
-	content_analyser.pre_check()
-
-	job_id = job_helper.suggest_job_id('ui')
-	step_args['output_path'] = get_output_file(job_id + '.mp4')
-
-	for key in job_store.get_job_keys():
-		state_manager.sync_item(key)  # type:ignore
-	return job_manager.create_job(job_id) and job_manager.add_step(job_id, step_args) and job_manager.submit_job(
-		job_id) and job_runner.run_job(job_id, core.process_step)
-
 
 # 设置允许访问的域名
 origins = ["*"]  # "*"，即为所有。
@@ -98,26 +77,64 @@ result_output_dir = './result/output'
 async def do(source_path: str, target_path: str):
 	os.makedirs(result_input_dir, exist_ok=True)  # 创建目录（如果不存在）
 	os.makedirs(result_output_dir, exist_ok=True)  # 创建目录（如果不存在）
-	step_args = collect_step_args()
-	step_args['source_paths'] = [source_path]
-	step_args['target_path'] = target_path
 
-	create_and_run_job(step_args)
+	job_id = job_helper.suggest_job_id('api')
+
+	try:
+		# 创建草稿作业
+		sys.argv = ["facefusion.py", "job-create", job_id]
+		core.cli()
+	except SystemExit as e:
+		exit_code = e.code if isinstance(e.code, int) else 1
+		if exit_code != 0:
+			raise HTTPException(status_code=400, detail=f"job-create {job_id} failed")
+
+	try:
+		# 向草稿作业添加步骤
+		sys.argv = [
+			"facefusion.py",
+			"job-add-step", job_id,
+			"--source-paths", source_path,
+			"--target-path", target_path
+		]
+		core.cli()
+	except SystemExit as e:
+		exit_code = e.code if isinstance(e.code, int) else 1
+		if exit_code != 0:
+			raise HTTPException(status_code=400, detail=f"job-add-step {job_id} failed")
+
+	try:
+		# 提交草稿作业以成为排队作业
+		sys.argv = ["facefusion.py", "job-submit", job_id]
+		core.cli()
+	except SystemExit as e:
+		exit_code = e.code if isinstance(e.code, int) else 1
+		if exit_code != 0:
+			raise HTTPException(status_code=400, detail=f"job-submit {job_id} failed")
+
+	try:
+		# 运行排队的作业
+		sys.argv = ["facefusion.py", "job-run", job_id]
+		core.cli()
+	except SystemExit as e:
+		exit_code = e.code if isinstance(e.code, int) else 1
+		if exit_code != 0:
+			raise HTTPException(status_code=400, detail=f"job-run {job_id} failed")
 
 	delete_old_files_and_folders(result_input_dir, 1)
 	delete_old_files_and_folders(result_output_dir, 1)
 
-	return PlainTextResponse(step_args['output_path'])
+	return PlainTextResponse("aaa")
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--port", type=int, default=7864)
-
-	argsMain = parser.parse_args()
+	parser.add_argument('--port', type=int, default=7864)
+	args = parser.parse_args()
 
 	try:
-		uvicorn.run(app=app, host="0.0.0.0", port=argsMain.port, workers=1)
-	except Exception as e:
-		print(e)
+		uvicorn.run(app="api:app", host="0.0.0.0", port=args.port, workers=1, reload=False, log_level="info")
+	except Exception as ex:
+		TextProcessor.log_error(ex)
+		print(ex)
 		exit(0)
