@@ -51,7 +51,7 @@ WORKDIR /code
 COPY . /code
 
 # 升级 pip 并安装 Python 依赖：
-RUN conda install conda-forge::cuda-runtime=12.8.0 conda-forge::cudnn=9.7.1.26
+RUN conda install -y conda-forge::cuda-runtime=12.8.0 conda-forge::cudnn=9.7.1.26
 
 RUN pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple \
     && python install.py --onnxruntime cuda --skip-conda \
