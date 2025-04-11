@@ -5,14 +5,14 @@ import os
 import sys
 
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, File, UploadFile
 from fastapi.openapi.docs import get_swagger_ui_html
-from fastapi.responses import PlainTextResponse, HTMLResponse
+from fastapi.responses import PlainTextResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware  # 引入 CORS中间件模块
 
 from custom.TextProcessor import TextProcessor
-from custom.file_utils import logging, delete_old_files_and_folders
+from custom.file_utils import logging, delete_old_files_and_folders, save_upload_to_file
 from facefusion import core
 from facefusion.jobs import job_helper
 
@@ -91,9 +91,22 @@ async def force_download():
 
 
 @app.get("/do")
-async def do(source_path: str, target_path: str):
+async def do(
+	source_file: UploadFile = File(..., description="选择图像或音频路径"),
+	target_file: UploadFile = File(..., description="选择图像或视频路径"),
+):
 	os.makedirs(result_input_dir, exist_ok=True)  # 创建目录（如果不存在）
 	os.makedirs(result_output_dir, exist_ok=True)  # 创建目录（如果不存在）
+
+	source_path = await save_upload_to_file(
+		input_dir=result_input_dir,
+		upload_file=source_file
+	)
+
+	target_path = await save_upload_to_file(
+		input_dir=result_input_dir,
+		upload_file=target_file
+	)
 
 	job_id = job_helper.suggest_job_id('api')
 	output_path = f"{result_output_dir}/{job_id}.mp4"
@@ -148,7 +161,8 @@ async def do(source_path: str, target_path: str):
 	delete_old_files_and_folders(result_input_dir, 1)
 	delete_old_files_and_folders(result_output_dir, 1)
 
-	return PlainTextResponse("aaa")
+	# 返回响应
+	return JSONResponse({"errcode": 0, "errmsg": "ok", "output_path": output_path})
 
 
 if __name__ == '__main__':
