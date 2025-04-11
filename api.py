@@ -21,7 +21,7 @@ os.environ['OMP_NUM_THREADS'] = '1'
 result_input_dir = './results/input'
 result_output_dir = './results/output'
 download_providers = "github"
-download_scope = "full"
+download_scope = "lite"
 # 设置允许访问的域名
 origins = ["*"]  # "*"，即为所有。
 
@@ -96,6 +96,7 @@ async def do(source_path: str, target_path: str):
 	os.makedirs(result_output_dir, exist_ok=True)  # 创建目录（如果不存在）
 
 	job_id = job_helper.suggest_job_id('api')
+	output_path = f"{result_output_dir}/{job_id}.mp4"
 
 	try:
 		# 创建草稿作业
@@ -112,7 +113,8 @@ async def do(source_path: str, target_path: str):
 			"facefusion.py",
 			"job-add-step", job_id,
 			"--source-paths", source_path,
-			"--target-path", target_path
+			"--target-path", target_path,
+			"--output-path", output_path,
 		]
 		core.cli()
 	except SystemExit as e:
@@ -135,7 +137,7 @@ async def do(source_path: str, target_path: str):
 			"facefusion.py",
 			"job-run", job_id,
 			"--download-providers", download_providers,
-			"--download-scope", download_scope
+			"--execution-providers", "cuda",
 		]
 		core.cli()
 	except SystemExit as e:

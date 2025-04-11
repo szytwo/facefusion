@@ -19,6 +19,7 @@ import os
 import shutil
 import time
 from logging.handlers import TimedRotatingFileHandler
+from pathlib import Path
 
 from tqdm import tqdm
 
@@ -77,6 +78,7 @@ logging.basicConfig(
 )
 
 
+# noinspection PyTypeChecker
 def read_lists(list_file):
 	lists = []
 	with open(list_file, 'r', encoding='utf8') as fin:
@@ -96,6 +98,25 @@ def read_json_lists(list_file):
 
 def get_full_path(path):
 	return os.path.abspath(path) if not os.path.isabs(path) else path
+
+
+def get_file_name(path):
+	# 统一替换反斜杠为正斜杠（兼容 Windows 路径）
+	path = path.replace("\\", "/")
+	# 提取纯文件名（无论输入是 Windows 还是 Linux 路径）
+	return Path(path).name
+
+
+def is_running_in_docker():
+	# 检查是否存在 .dockerenv 文件
+	if os.path.exists("/.dockerenv"):
+		return True
+	# 检查 /proc/self/cgroup 是否包含 "docker" 或 "kubepods"
+	try:
+		with open("/proc/self/cgroup", "r") as f:
+			return "docker" in f.read() or "kubepods" in f.read()
+	except FileNotFoundError:
+		return False
 
 
 def delete_old_files_and_folders(folder_path, days):
