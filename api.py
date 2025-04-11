@@ -90,6 +90,7 @@ async def do(source_path: str, target_path: str):
 	step_args = collect_step_args()
 	step_args['source_paths'] = [source_path]
 	step_args['target_path'] = target_path
+	
 	create_and_run_job(step_args)
 
 	delete_old_files_and_folders(result_input_dir, 1)
@@ -103,6 +104,7 @@ if __name__ == "__main__":
 	parser.add_argument("--port", type=int, default=7864)
 
 	argsMain = parser.parse_args()
+
 	try:
 		uvicorn.run(app=app, host="0.0.0.0", port=argsMain.port, workers=1)
 	except Exception as e:
