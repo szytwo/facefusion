@@ -3,11 +3,12 @@
 import argparse
 import os
 import sys
+from pathlib import Path
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, File, UploadFile
+from fastapi import FastAPI, HTTPException, File, UploadFile, Query
 from fastapi.openapi.docs import get_swagger_ui_html
-from fastapi.responses import PlainTextResponse, HTMLResponse, JSONResponse
+from fastapi.responses import PlainTextResponse, HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware  # 引入 CORS中间件模块
 
@@ -164,6 +165,17 @@ async def do(
 
 	# 返回响应
 	return JSONResponse({"errcode": 0, "errmsg": "ok", "output_path": output_path})
+
+
+@app.get('/download')
+async def download(
+	file_path: str = Query(..., description="输入文件路径"),
+):
+	"""
+	文件下载接口。
+	"""
+	file_name = Path(file_path).name
+	return FileResponse(path=file_path, filename=file_name, media_type='application/octet-stream')
 
 
 if __name__ == '__main__':
