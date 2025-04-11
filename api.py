@@ -91,7 +91,7 @@ async def force_download():
 			raise HTTPException(status_code=400, detail=f"force-download failed")
 
 
-@app.get("/do")
+@app.post("/do")
 async def do(
 	source_file: UploadFile = File(..., description="选择图像或音频路径"),
 	target_file: UploadFile = File(..., description="选择图像或视频路径"),
