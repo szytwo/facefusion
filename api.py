@@ -3,21 +3,24 @@
 import argparse
 import os
 import sys
-
 import uvicorn
+from custom.TextProcessor import TextProcessor
 from fastapi import FastAPI, HTTPException
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import PlainTextResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware  # 引入 CORS中间件模块
 
-from custom.TextProcessor import TextProcessor
 from custom.file_utils import logging, delete_old_files_and_folders
 from facefusion import core
 from facefusion.jobs import job_helper
 
 os.environ['OMP_NUM_THREADS'] = '1'
 
+result_input_dir = './result/input'
+result_output_dir = './result/output'
+download_providers = "github"
+download_scope = "full"
 # 设置允许访问的域名
 origins = ["*"]  # "*"，即为所有。
 
@@ -69,8 +72,21 @@ async def test():
 	return PlainTextResponse('success')
 
 
-result_input_dir = './result/input'
-result_output_dir = './result/output'
+@app.get("/force_download")
+async def force_download():
+	try:
+		# 下载模型
+		sys.argv = [
+			"facefusion.py",
+			"force-download",
+			"--download-providers", download_providers,
+			"--download-scope", download_scope
+		]
+		core.cli()
+	except SystemExit as e:
+		exit_code = e.code if isinstance(e.code, int) else 1
+		if exit_code != 0:
+			raise HTTPException(status_code=400, detail=f"force-download failed")
 
 
 @app.get("/do")
@@ -114,7 +130,12 @@ async def do(source_path: str, target_path: str):
 
 	try:
 		# 运行排队的作业
-		sys.argv = ["facefusion.py", "job-run", job_id, "--download-providers", "github"]
+		sys.argv = [
+			"facefusion.py",
+			"job-run", job_id,
+			"--download-providers", download_providers,
+			"--download-scope", download_scope
+		]
 		core.cli()
 	except SystemExit as e:
 		exit_code = e.code if isinstance(e.code, int) else 1
