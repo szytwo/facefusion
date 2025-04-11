@@ -11,16 +11,25 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware  # 引入 CORS中间件模块
 
 from custom.file_utils import logging, delete_old_files_and_folders
-from facefusion import core
+from facefusion import core, state_manager, content_analyser
 from facefusion.args import collect_step_args
 from facefusion.jobs import job_helper, job_manager, job_runner, job_store
+from facefusion.jobs.job_manager import clear_jobs, init_jobs
 from facefusion.typing import Args
-from tests.helper import get_output_file
+from tests.helper import get_output_file, get_jobs_directory, prepare_output_directory
 
 os.environ['OMP_NUM_THREADS'] = '1'
 
 
 def create_and_run_job(step_args: Args) -> bool:
+	clear_jobs(get_jobs_directory())
+	init_jobs(get_jobs_directory())
+	prepare_output_directory()
+	state_manager.init_item('execution_device_id', 0)
+	state_manager.init_item('execution_providers', ['cuda'])
+	state_manager.init_item('download_providers', ['huggingface'])
+	content_analyser.pre_check()
+
 	job_id = job_helper.suggest_job_id('ui')
 	step_args['output_path'] = get_output_file(job_id + '.mp4')
 
@@ -87,10 +96,12 @@ result_output_dir = './result/output'
 
 @app.get("/do")
 async def do(source_path: str, target_path: str):
+	os.makedirs(result_input_dir, exist_ok=True)  # 创建目录（如果不存在）
+	os.makedirs(result_output_dir, exist_ok=True)  # 创建目录（如果不存在）
 	step_args = collect_step_args()
 	step_args['source_paths'] = [source_path]
 	step_args['target_path'] = target_path
-	
+
 	create_and_run_job(step_args)
 
 	delete_old_files_and_folders(result_input_dir, 1)
