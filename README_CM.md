@@ -16,7 +16,7 @@ nvidia-smi # 显卡使用情况
 
 ```
 
-docker build -t facefusion:3.1.1 .  # 构建镜像
+docker build -t facefusion:3.1.1 .  --progress=plain # 构建镜像
 docker load -i facefusion-3.1.1.tar # 导入镜像
 docker save -o facefusion-3.1.1.tar facefusion:3.1.1 # 导出镜像
 docker-compose up -d # 后台运行容器

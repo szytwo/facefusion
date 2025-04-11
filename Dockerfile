@@ -55,7 +55,7 @@ RUN conda install conda-forge::cuda-runtime=12.8.0 conda-forge::cudnn=9.7.1.26
 
 RUN pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple \
     && python install.py --onnxruntime cuda --skip-conda \
-    && rm -rf wheels \
+    && rm -rf wheels
 
 # 暴露容器端口
 EXPOSE 22
