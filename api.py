@@ -3,22 +3,23 @@
 import argparse
 import os
 import sys
+
 import uvicorn
-from custom.TextProcessor import TextProcessor
 from fastapi import FastAPI, HTTPException
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import PlainTextResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware  # 引入 CORS中间件模块
 
+from custom.TextProcessor import TextProcessor
 from custom.file_utils import logging, delete_old_files_and_folders
 from facefusion import core
 from facefusion.jobs import job_helper
 
 os.environ['OMP_NUM_THREADS'] = '1'
 
-result_input_dir = './result/input'
-result_output_dir = './result/output'
+result_input_dir = './results/input'
+result_output_dir = './results/output'
 download_providers = "github"
 download_scope = "full"
 # 设置允许访问的域名
