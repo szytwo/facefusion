@@ -1,9 +1,12 @@
 ## 安装
+
 ```
 conda create --prefix ./venv python==3.11
 conda activate ./venv
 
-pip install -r ./requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+python install.py --onnxruntime cuda
+
+conda install conda-forge::cuda-runtime=12.8.0 conda-forge::cudnn=9.7.1.26
 
 nvidia-smi # 显卡使用情况
 
@@ -13,9 +16,9 @@ nvidia-smi # 显卡使用情况
 
 ```
 
-docker build -t sensevoice:1.0 .  # 构建镜像
-docker load -i sensevoice-1.0.tar # 导入镜像
-docker save -o sensevoice-1.0.tar sensevoice:1.0 # 导出镜像
+docker build -t facefusion:3.1.1 .  # 构建镜像
+docker load -i facefusion-3.1.1.tar # 导入镜像
+docker save -o facefusion-3.1.1.tar facefusion:3.1.1 # 导出镜像
 docker-compose up -d # 后台运行容器
 docker builder prune -a #强制清理所有构建缓存
 
