@@ -114,7 +114,7 @@ async def do(source_path: str, target_path: str):
 
 	try:
 		# 运行排队的作业
-		sys.argv = ["facefusion.py", "job-run", job_id]
+		sys.argv = ["facefusion.py", "job-run", job_id, "--download-providers", "github"]
 		core.cli()
 	except SystemExit as e:
 		exit_code = e.code if isinstance(e.code, int) else 1
