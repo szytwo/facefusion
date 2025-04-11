@@ -1,6 +1,6 @@
 # 使用 PyTorch 官方 CUDA 运行时镜像
 # https://hub.docker.com/r/pytorch/pytorch/tags
-FROM pytorch/pytorch:2.3.0-cuda12.1-cudnn8-runtime
+FROM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime
 
 # 替换软件源为清华镜像
 RUN sed -i 's|archive.ubuntu.com|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list && \
@@ -51,14 +51,16 @@ WORKDIR /code
 COPY . /code
 
 # 升级 pip 并安装 Python 依赖：
+RUN conda install conda-forge::cuda-runtime=12.8.0 conda-forge::cudnn=9.7.1.26
+
 RUN pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple \
-    && pip install -r api_requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple  \
-    && rm -rf wheels
+    && python install.py --onnxruntime cuda --skip-conda \
+    && rm -rf wheels \
 
 # 暴露容器端口
 EXPOSE 22
 EXPOSE 80
-EXPOSE 7868
+EXPOSE 7864
 
 # 容器启动时执行 api.py
 # CMD ["python", "api.py"]
